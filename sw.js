@@ -1,9 +1,10 @@
-const CACHE = 'chapelet-v1';
+const CACHE = 'chapelet-v2';
 const ASSETS = [
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', e => {
@@ -26,7 +27,7 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
-      return fetch(e.request).catch(() => caches.match('/index.html'));
+      return fetch(e.request).catch(() => caches.match('./index.html'));
     })
   );
 });
