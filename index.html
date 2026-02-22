@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Le Chapelet</title>
+<meta name="theme-color" content="#1a1208">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chapelet">
+<meta name="description" content="Application de suivi du chapelet catholique">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #f5f0e8;
+    --parchment: #ede5d4;
+    --gold: #c9a84c;
+    --gold-light: #e8c96a;
+    --dark: #1a1208;
+    --brown: #4a3520;
+    --red: #8b2635;
+    --shadow: rgba(26,18,8,0.4);
+  }
+
+  body {
+    min-height: 100vh;
+    background: var(--dark);
+    background-image:
+      radial-gradient(ellipse at 30% 20%, rgba(201,168,76,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 80%, rgba(139,38,53,0.08) 0%, transparent 60%);
+    font-family: 'EB Garamond', serif;
+    color: var(--cream);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: env(safe-area-inset-top, 2rem) 1rem env(safe-area-inset-bottom, 2rem) 1rem;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    opacity: 0.5;
+    z-index: 1;
+  }
+
+  .app { position: relative; z-index: 2; width: 100%; max-width: 600px; }
+
+  /* Header */
+  header { text-align: center; margin-bottom: 2rem; }
+  header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    color: var(--gold);
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 40px rgba(201,168,76,0.3);
+    margin-bottom: 0.3rem;
+  }
+  header p {
+    font-style: italic;
+    font-size: 1rem;
+    color: rgba(245,240,232,0.5);
+    letter-spacing: 0.05em;
+  }
+
+  /* Divider */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1rem 0;
+    color: var(--gold);
+    opacity: 0.4;
+    font-size: 0.9rem;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--gold);
+    opacity: 0.4;
+  }
+
+  /* Mystery selector */
+  .mystery-selector {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+  .mystery-btn {
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.3);
+    color: rgba(245,240,232,0.6);
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    border-radius: 2px;
+  }
+  .mystery-btn:hover, .mystery-btn.active {
+    background: rgba(201,168,76,0.15);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  /* Prayer info card */
+  .prayer-card {
+    background: rgba(245,240,232,0.04);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 4px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    transition: all 0.5s;
+  }
+  .prayer-card .step-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+    opacity: 0.8;
+  }
+  .prayer-card .prayer-name {
+    font-size: 1.4rem;
+    font-style: italic;
+    color: var(--cream);
+    margin-bottom: 0.5rem;
+  }
+  .prayer-card .prayer-desc {
+    font-size: 0.85rem;
+    color: rgba(245,240,232,0.45);
+    line-height: 1.6;
+  }
+
+  /* Rosary visual */
+  .rosary-container {
+    position: relative;
+    width: 100%;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  svg.rosary-svg {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    filter: drop-shadow(0 8px 30px rgba(0,0,0,0.5));
+  }
+
+  /* Beads */
+  .bead {
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .bead circle {
+    transition: all 0.3s;
+  }
+  .bead:hover circle { filter: brightness(1.3); }
+  .bead.prayed circle { fill: var(--gold) !important; }
+  .bead.current circle {
+    fill: var(--gold-light) !important;
+    filter: drop-shadow(0 0 6px var(--gold));
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { filter: drop-shadow(0 0 4px var(--gold)); }
+    50% { filter: drop-shadow(0 0 12px var(--gold)); }
+  }
+
+  /* Counter display */
+  .counter-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .counter-box {
+    text-align: center;
+    background: rgba(245,240,232,0.04);
+    border: 1px solid rgba(201,168,76,0.2);
+    padding: 0.6rem 1.2rem;
+    border-radius: 3px;
+    min-width: 80px;
+  }
+  .counter-box .num {
+    font-family: 'Cinzel', serif;
+    font-size: 1.8rem;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .counter-box .lbl {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: rgba(245,240,232,0.4);
+    text-transform: uppercase;
+    margin-top: 0.2rem;
+  }
+
+  /* Decade progress */
+  .decade-dots {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-bottom: 0.8rem;
+  }
+  .decade-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(201,168,76,0.2);
+    border: 1px solid rgba(201,168,76,0.3);
+    transition: all 0.3s;
+  }
+  .decade-dot.done {
+    background: var(--gold);
+    border-color: var(--gold);
+    box-shadow: 0 0 8px rgba(201,168,76,0.4);
+  }
+  .decade-dot.current {
+    background: rgba(201,168,76,0.5);
+    border-color: var(--gold);
+    animation: pulse-dot 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100% { box-shadow: 0 0 4px rgba(201,168,76,0.3); }
+    50% { box-shadow: 0 0 10px rgba(201,168,76,0.7); }
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 3rem;
+  }
+  .btn-main {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.8rem 2rem;
+    cursor: pointer;
+    border: none;
+    border-radius: 3px;
+    transition: all 0.3s;
+  }
+  .btn-next {
+    background: linear-gradient(135deg, var(--gold) 0%, #a8832a 100%);
+    color: var(--dark);
+    box-shadow: 0 4px 20px rgba(201,168,76,0.3);
+  }
+  .btn-next:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 25px rgba(201,168,76,0.4);
+  }
+  .btn-next:active { transform: translateY(0); }
+  .btn-reset {
+    background: transparent;
+    color: rgba(245,240,232,0.4);
+    border: 1px solid rgba(245,240,232,0.15);
+    font-size: 0.7rem;
+    padding: 0.6rem 1.2rem;
+  }
+  .btn-reset:hover { color: var(--cream); border-color: rgba(245,240,232,0.4); }
+
+  /* Completed screen */
+  .completed {
+    text-align: center;
+    padding: 2rem;
+    animation: fadeIn 1s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .completed .cross {
+    font-size: 4rem;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(201,168,76,0.5);
+    margin-bottom: 1rem;
+  }
+  .completed h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.8rem;
+    color: var(--gold);
+    margin-bottom: 0.5rem;
+  }
+  .completed p {
+    color: rgba(245,240,232,0.6);
+    font-style: italic;
+    margin-bottom: 2rem;
+  }
+
+  /* Current mystery display */
+  .mystery-display {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: rgba(201,168,76,0.6);
+    text-align: center;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+  }
+
+  .mystery-name {
+    text-align: center;
+    font-style: italic;
+    color: rgba(245,240,232,0.7);
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Progress bar */
+  .progress-bar-outer {
+    width: 100%;
+    height: 3px;
+    background: rgba(201,168,76,0.1);
+    border-radius: 2px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 8px rgba(201,168,76,0.5);
+  }
+
+  /* Prayer text */
+  .prayer-text-section {
+    margin-bottom: 1.5rem;
+  }
+  .prayer-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.25);
+    color: rgba(201,168,76,0.7);
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 0.9rem;
+    padding: 0.5rem 1.2rem;
+    cursor: pointer;
+    width: 100%;
+    border-radius: 3px;
+    transition: all 0.3s;
+    letter-spacing: 0.03em;
+  }
+  .prayer-toggle:hover {
+    background: rgba(201,168,76,0.07);
+    color: var(--gold);
+    border-color: rgba(201,168,76,0.5);
+  }
+  .prayer-toggle .chevron {
+    font-size: 0.7rem;
+    transition: transform 0.3s;
+  }
+  .prayer-toggle.open .chevron { transform: rotate(180deg); }
+
+  .prayer-full {
+    display: none;
+    background: rgba(245,240,232,0.03);
+    border: 1px solid rgba(201,168,76,0.12);
+    border-top: none;
+    border-radius: 0 0 3px 3px;
+    padding: 1.2rem 1.5rem;
+    animation: fadeIn 0.3s ease;
+  }
+  .prayer-full.visible { display: block; }
+  .prayer-full .prayer-intro-text {
+    font-size: 0.8rem;
+    color: rgba(245,240,232,0.35);
+    font-style: italic;
+    margin-bottom: 1rem;
+    text-align: center;
+    letter-spacing: 0.03em;
+  }
+  .prayer-full pre {
+    font-family: 'EB Garamond', serif;
+    font-size: 1.05rem;
+    line-height: 1.85;
+    color: rgba(245,240,232,0.85);
+    white-space: pre-wrap;
+    text-align: center;
+  }
+
+  .mystery-verse {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 1.5rem;
+    padding: 0.8rem 1.2rem;
+    background: rgba(201,168,76,0.05);
+    border-left: 2px solid rgba(201,168,76,0.3);
+    border-right: 2px solid rgba(201,168,76,0.3);
+    border-radius: 2px;
+    text-align: center;
+  }
+  .verse-ref {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--gold);
+    opacity: 0.8;
+    text-transform: uppercase;
+  }
+  .verse-text {
+    font-style: italic;
+    font-size: 0.9rem;
+    color: rgba(245,240,232,0.55);
+    line-height: 1.6;
+  }
+
+  @keyframes glow {
+    0%,100% { box-shadow: 0 0 5px rgba(201,168,76,0.3); }
+    50% { box-shadow: 0 0 15px rgba(201,168,76,0.6); }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- Will be filled by JS -->
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const MYSTERIES = {
+  joyeux: {
+    name: 'Mystères Joyeux',
+    color: '#c9a84c',
+    decades: [
+      'L\'Annonciation',
+      'La Visitation',
+      'La Naissance de Jésus',
+      'La Présentation au Temple',
+      'Le Recouvrement de Jésus au Temple'
+    ],
+    verses: [
+      { ref: 'Lc 1, 28', text: '« Réjouis-toi, comblée de grâce, le Seigneur est avec toi. »' },
+      { ref: 'Lc 1, 41-42', text: '« Élisabeth fut remplie de l\'Esprit Saint… Tu es bénie entre toutes les femmes. »' },
+      { ref: 'Lc 2, 7', text: '« Elle enfanta son fils premier-né, l\'enveloppa de langes et le coucha dans une mangeoire. »' },
+      { ref: 'Lc 2, 22-23', text: '« Ils le présentèrent au Seigneur, comme il est écrit dans la loi du Seigneur. »' },
+      { ref: 'Lc 2, 46', text: '« Au bout de trois jours, ils le trouvèrent dans le Temple, assis au milieu des docteurs. »' }
+    ]
+  },
+  douloureux: {
+    name: 'Mystères Douloureux',
+    color: '#8b2635',
+    decades: [
+      'L\'Agonie de Jésus au Jardin',
+      'La Flagellation',
+      'Le Couronnement d\'épines',
+      'Le Portement de la Croix',
+      'La Crucifixion'
+    ],
+    verses: [
+      { ref: 'Lc 22, 42', text: '« Père, si tu veux, éloigne de moi cette coupe ; cependant, que ce soit ta volonté et non la mienne qui se fasse. »' },
+      { ref: 'Jn 19, 1', text: '« Pilate fit alors saisir Jésus et ordonna de le flageller. »' },
+      { ref: 'Mt 27, 29', text: '« Ils tressèrent une couronne d\'épines et la posèrent sur sa tête, et ils se moquaient de lui. »' },
+      { ref: 'Jn 19, 17', text: '« Portant lui-même sa croix, Jésus sortit en direction du lieu dit Crâne. »' },
+      { ref: 'Lc 23, 46', text: '« Père, entre tes mains je remets mon esprit. » Ayant dit cela, il expira. »' }
+    ]
+  },
+  glorieux: {
+    name: 'Mystères Glorieux',
+    color: '#4a6fa5',
+    decades: [
+      'La Résurrection',
+      'L\'Ascension',
+      'La Pentecôte',
+      'L\'Assomption de Marie',
+      'Le Couronnement de Marie'
+    ],
+    verses: [
+      { ref: 'Jn 20, 1-2', text: '« Il vit les linges posés à plat, ainsi que le linge qui avait recouvert la tête de Jésus. »' },
+      { ref: 'Ac 1, 9', text: '« Il fut élevé pendant qu\'ils le regardaient, et une nuée le déroba à leurs yeux. »' },
+      { ref: 'Ac 2, 4', text: '« Ils furent tous remplis de l\'Esprit Saint et se mirent à parler en d\'autres langues. »' },
+      { ref: 'Ap 12, 1', text: '« Une femme revêtue du soleil, la lune sous ses pieds, et sur la tête une couronne de douze étoiles. »' },
+      { ref: 'Ap 12, 1', text: '« Elle reçut une couronne de douze étoiles. Elle règne auprès de son Fils pour l\'éternité. »' }
+    ]
+  },
+  lumineux: {
+    name: 'Mystères Lumineux',
+    color: '#5a9e6f',
+    decades: [
+      'Le Baptême de Jésus',
+      'Les Noces de Cana',
+      'L\'Annonce du Royaume de Dieu',
+      'La Transfiguration',
+      'L\'Institution de l\'Eucharistie'
+    ],
+    verses: [
+      { ref: 'Mt 3, 16-17', text: '« Une voix venant des cieux disait : Celui-ci est mon Fils bien-aimé, en qui j\'ai mis tout mon amour. »' },
+      { ref: 'Jn 2, 11', text: '« Tel fut le commencement des miracles de Jésus. Il manifesta sa gloire et ses disciples crurent en lui. »' },
+      { ref: 'Mc 1, 15', text: '« Le temps est accompli et le Royaume de Dieu est tout proche : repentez-vous et croyez à la Bonne Nouvelle. »' },
+      { ref: 'Mt 17, 2', text: '« Son visage resplendit comme le soleil et ses vêtements devinrent blancs comme la lumière. »' },
+      { ref: 'Lc 22, 19', text: '« Il prit du pain, rendit grâce, le rompit et le leur donna, en disant : Ceci est mon corps. »' }
+    ]
+  }
+};
+
+// Chapelet sequence:
+// 1. Credo (on cross)
+// 2. Notre Père (large bead)
+// 3. Je vous salue Marie × 3 (small beads)
+// 4. Gloire au Père
+// Then for each of 5 decades:
+//   Notre Père (large bead)
+//   Ave × 10 (small beads)
+//   Gloire au Père
+// Final: Salve Regina
+
+// ─── PRAYER TEXTS ────────────────────────────────────────────────────────────
+
+const PRAYERS = {
+  credo: {
+    title: 'Je crois en Dieu — Credo des Apôtres',
+    intro: 'Commencez le chapelet par cette profession de foi.',
+    text: `Je crois en Dieu, le Père tout-puissant,\nCréateur du ciel et de la terre.\n\nJe crois en Jésus-Christ, son Fils unique, notre Seigneur,\nqui a été conçu du Saint-Esprit,\nest né de la Vierge Marie,\na souffert sous Ponce Pilate,\na été crucifié, est mort et a été enseveli,\nest descendu aux enfers,\nle troisième jour est ressuscité des morts,\nest monté aux cieux,\nest assis à la droite de Dieu le Père tout-puissant,\nd'où il viendra juger les vivants et les morts.\n\nJe crois en l'Esprit Saint,\nà la sainte Église catholique,\nà la communion des saints,\nà la rémission des péchés,\nà la résurrection de la chair,\nà la vie éternelle.\n\nAmen.`
+  },
+  'notre-pere': {
+    title: 'Notre Père',
+    intro: 'La prière enseignée par Jésus lui-même (Mt 6, 9-13).',
+    text: `Notre Père, qui es aux cieux,\nque ton Nom soit sanctifié,\nque ton règne vienne,\nque ta volonté soit faite\nsur la terre comme au ciel.\n\nDonne-nous aujourd'hui notre pain de ce jour.\nPardonne-nous nos offenses,\ncomme nous pardonnons aussi\nà ceux qui nous ont offensés.\nEt ne nous soumets pas à la tentation,\nmais délivre-nous du Mal.\n\nAmen.`
+  },
+  ave: {
+    title: 'Je vous salue Marie — Ave Maria',
+    intro: 'Prière à la Vierge Marie, tirée de l\'Évangile de Luc.',
+    text: `Je vous salue, Marie, pleine de grâce,\nle Seigneur est avec vous.\nVous êtes bénie entre toutes les femmes,\net Jésus, le fruit de vos entrailles, est béni.\n\nSainte Marie, Mère de Dieu,\npriez pour nous, pauvres pécheurs,\nmaintenant et à l'heure de notre mort.\n\nAmen.`
+  },
+  gloire: {
+    title: 'Gloire au Père — Doxologie',
+    intro: 'Courte prière de louange à la Trinité.',
+    text: `Gloire au Père,\net au Fils,\net au Saint-Esprit.\n\nComme il était au commencement,\nmaintenant et toujours,\ndans les siècles des siècles.\n\nAmen.`
+  },
+  fatima: {
+    title: 'Prière de Fatima',
+    intro: 'Prière demandée par Notre-Dame lors des apparitions de Fatima en 1917.',
+    text: `Ô mon Jésus,\npardonnez-nous nos péchés,\npréservez-nous du feu de l'enfer,\nconduisez au ciel toutes les âmes,\nsurtout celles qui ont le plus besoin\nde votre miséricorde.\n\nAmen.`
+  },
+  salve: {
+    title: 'Salve Regina',
+    intro: 'Antienne mariale pour clore le chapelet.',
+    text: `Salve, Regina, Mater misericordiae,\nvita, dulcedo et spes nostra, salve.\n\nJe vous salue, Reine, Mère de miséricorde,\nnotre vie, notre douceur et notre espérance, salve !\n\nVers vous nous crions, pauvres enfants d'Ève en exil.\nVers vous nous soupirons, gémissant et pleurant\ndans cette vallée de larmes.\n\nÔ vous, notre avocate, tournez vers nous\nvos yeux miséricordieux.\nEt, après cet exil, montrez-nous Jésus,\nle fruit béni de vos entrailles.\n\nÔ clémente, ô pieuse,\nô douce Vierge Marie.\n\nAmen.`
+  }
+};
+
+function buildSequence(mysteryKey) {
+  const mystery = MYSTERIES[mysteryKey];
+  const steps = [];
+
+  steps.push({ id: 'credo', type: 'credo', label: 'Je crois en Dieu', bead: 'cross' });
+  steps.push({ id: 'notre-pere-0', type: 'notre-pere', label: 'Notre Père', bead: 'large' });
+  for (let i = 1; i <= 3; i++) {
+    steps.push({ id: `ave-intro-${i}`, type: 'ave', label: `Je vous salue Marie (${i}/3)`, bead: 'small', decadeIdx: -1, beadInDecade: i - 1, introNote: 'Pour les vertus de foi, d\'espérance et de charité.' });
+  }
+  steps.push({ id: 'gloire-intro', type: 'gloire', label: 'Gloire au Père', bead: 'none' });
+
+  for (let d = 0; d < 5; d++) {
+    steps.push({ id: `notre-pere-${d+1}`, type: 'notre-pere', label: 'Notre Père', bead: 'large', decade: d });
+    for (let i = 1; i <= 10; i++) {
+      steps.push({ id: `ave-${d}-${i}`, type: 'ave', label: `Je vous salue Marie (${i}/10)`, bead: 'small', decadeIdx: d, beadInDecade: i - 1 });
+    }
+    steps.push({ id: `gloire-${d}`, type: 'gloire', label: 'Gloire au Père', bead: 'none', decade: d });
+    if (d < 4) {
+      steps.push({ id: `fatima-${d}`, type: 'fatima', label: 'Prière de Fatima', bead: 'none' });
+    }
+  }
+
+  steps.push({ id: 'salve', type: 'salve', label: 'Salve Regina', bead: 'none' });
+  return steps;
+}
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+
+let state = {
+  mysteryKey: 'joyeux',
+  currentStep: 0,
+  sequence: buildSequence('joyeux'),
+  completed: false
+};
+
+function getDecadesInfo() {
+  // Which dizaines are completed, current, pending
+  const decades = [];
+  for (let d = 0; d < 5; d++) {
+    // Find the last ave step for this decade
+    const lastAveIdx = state.sequence.findIndex(s => s.id === `ave-${d}-10`);
+    const firstIdx = state.sequence.findIndex(s => s.id === `notre-pere-${d+1}`);
+    if (state.currentStep > lastAveIdx) decades.push('done');
+    else if (state.currentStep >= firstIdx) decades.push('current');
+    else decades.push('pending');
+  }
+  return decades;
+}
+
+function getProgress() {
+  return Math.round((state.currentStep / (state.sequence.length - 1)) * 100);
+}
+
+function advanceStep() {
+  if (state.currentStep < state.sequence.length - 1) {
+    state.currentStep++;
+    if (state.currentStep === state.sequence.length - 1) {
+      // Check if last step done after click
+    }
+  } else {
+    state.completed = true;
+  }
+  render();
+}
+
+function reset() {
+  state.currentStep = 0;
+  state.completed = false;
+  state.sequence = buildSequence(state.mysteryKey);
+  render();
+}
+
+function setMystery(key) {
+  state.mysteryKey = key;
+  reset();
+}
+
+// ─── ROSARY SVG ─────────────────────────────────────────────────────────────
+
+function buildRosarySVG() {
+  const seq = state.sequence;
+  const cur = state.currentStep;
+
+  // Layout (Y increases downward):
+  //   TOP: oval of 55 beads (5 dizaines × 11)
+  //   The oval bottom connects to a junction ring
+  //   TAIL goes DOWN from junction: medal → Notre Père → 3 Ave → cross at very bottom
+  //
+  // Coordinates:
+  const W = 500;
+  const cx = W / 2;
+  // Oval center high up
+  const ovalCy = 175;
+  const rx = 175, ry = 145;
+  // Junction at bottom of oval
+  const juncY = ovalCy + ry; // ≈ 320
+
+  // Tail descends from juncY
+  const medalY   = juncY + 38;   // Médaille miraculeuse
+  const np0Y     = medalY + 50;  // Notre Père (gros grain)
+  const ave1Y    = np0Y  + 35;   // Ave 1
+  const ave2Y    = ave1Y + 22;   // Ave 2
+  const ave3Y    = ave2Y + 22;   // Ave 3
+  const crossY   = ave3Y + 48;   // Croix
+
+  const totalH = crossY + 55; // viewBox height
+
+  // ── helpers ──────────────────────────────────────────────────────────────
+  function beadFill(isCurrent, isPrayed, large) {
+    if (isCurrent) return '#e8c96a';
+    if (isPrayed)  return '#c9a84c';
+    return large ? '#2a1f10' : '#1e1608';
+  }
+  function beadStroke(isCurrent, isPrayed) {
+    return (isCurrent || isPrayed) ? '#c9a84c' : '#4a3520';
+  }
+  function beadSW(isCurrent) { return isCurrent ? 2 : 1.5; }
+
+  // ── Oval beads ────────────────────────────────────────────────────────────
+  // 55 beads evenly spaced, starting from BOTTOM (angle = π/2) going counter-clockwise
+  // so that the sequence reads naturally from bottom-left upward then around
+  const totalOval = 55;
+  const ovalBeads = []; // { x, y, r, stepIdx, isCurrent, isPrayed }
+
+  let seqIdx = 0; // index into ovalBeads array
+  for (let d = 0; d < 5; d++) {
+    const npStep = seq.findIndex(s => s.id === `notre-pere-${d + 1}`);
+    const angle = ((seqIdx) / totalOval) * Math.PI * 2 + Math.PI / 2;
+    ovalBeads.push({
+      x: cx + rx * Math.cos(angle),
+      y: ovalCy + ry * Math.sin(angle),
+      r: 11, stepIdx: npStep,
+      isCurrent: cur === npStep,
+      isPrayed: cur > npStep,
+      large: true
+    });
+    seqIdx++;
+    for (let i = 1; i <= 10; i++) {
+      const aveStep = seq.findIndex(s => s.id === `ave-${d}-${i}`);
+      const a2 = ((seqIdx) / totalOval) * Math.PI * 2 + Math.PI / 2;
+      ovalBeads.push({
+        x: cx + rx * Math.cos(a2),
+        y: ovalCy + ry * Math.sin(a2),
+        r: 7, stepIdx: aveStep,
+        isCurrent: cur === aveStep,
+        isPrayed: cur > aveStep,
+        large: false
+      });
+      seqIdx++;
+    }
+  }
+
+  // ── Steps for tail beads ──────────────────────────────────────────────────
+  const np0Step    = seq.findIndex(s => s.id === 'notre-pere-0');
+  const ave1Step   = seq.findIndex(s => s.id === 'ave-intro-1');
+  const ave2Step   = seq.findIndex(s => s.id === 'ave-intro-2');
+  const ave3Step   = seq.findIndex(s => s.id === 'ave-intro-3');
+  const credoStep  = 0;
+
+  // ── Build SVG ──────────────────────────────────────────────────────────────
+  let lines = '';
+  let decorations = '';
+  let beadsOut = '';
+
+  // Chain: oval bottom → medal → np0 → aves → cross
+  lines += `<line x1="${cx}" y1="${juncY}" x2="${cx}" y2="${crossY - 20}" stroke="#3a2a15" stroke-width="2"/>`;
+
+  // Oval chain
+  lines += `<ellipse cx="${cx}" cy="${ovalCy}" rx="${rx}" ry="${ry}" fill="none" stroke="#3a2a15" stroke-width="2"/>`;
+
+  // Junction ring (small ring connecting oval to tail)
+  lines += `<circle cx="${cx}" cy="${juncY}" r="5" fill="#1e1608" stroke="#4a3520" stroke-width="1.5"/>`;
+
+  // ── Médaille miraculeuse ──────────────────────────────────────────────────
+  // Oval medal with Mary silhouette engraved
+  const mRy = 16, mRx = 12;
+  const medalIsCur = false; // medal is decorative, no step
+  decorations += `
+    <g transform="translate(${cx}, ${medalY})">
+      <!-- medal body -->
+      <ellipse rx="${mRx}" ry="${mRy}" fill="#1a1005" stroke="#c9a84c" stroke-width="1.5"/>
+      <!-- M crown rays -->
+      <line x1="-4" y1="-${mRy-2}" x2="-6" y2="-${mRy+5}" stroke="#c9a84c" stroke-width="0.8" opacity="0.7"/>
+      <line x1="0"  y1="-${mRy-1}" x2="0"  y2="-${mRy+6}" stroke="#c9a84c" stroke-width="0.8" opacity="0.7"/>
+      <line x1="4"  y1="-${mRy-2}" x2="6"  y2="-${mRy+5}" stroke="#c9a84c" stroke-width="0.8" opacity="0.7"/>
+      <!-- Mary figure (stylized) -->
+      <!-- head -->
+      <circle cx="0" cy="-6" r="3" fill="none" stroke="#c9a84c" stroke-width="0.9" opacity="0.85"/>
+      <!-- veil/mantle lines -->
+      <path d="M-3,-3 Q-7,2 -5,10" fill="none" stroke="#c9a84c" stroke-width="0.8" opacity="0.7"/>
+      <path d="M3,-3 Q7,2 5,10" fill="none" stroke="#c9a84c" stroke-width="0.8" opacity="0.7"/>
+      <!-- body -->
+      <line x1="0" y1="-3" x2="0" y2="8" stroke="#c9a84c" stroke-width="0.9" opacity="0.8"/>
+      <!-- arms/hands joined in prayer -->
+      <path d="M-2,0 L0,3 L2,0" fill="none" stroke="#c9a84c" stroke-width="0.8" opacity="0.75"/>
+      <!-- 12 stars around (simplified as dots) -->
+      ${Array.from({length:12},(_,i)=>{
+        const a = (i/12)*Math.PI*2 - Math.PI/2;
+        const sr = mRx + 4;
+        return `<circle cx="${(Math.cos(a)*sr*0.85).toFixed(1)}" cy="${(Math.sin(a)*mRy*0.85+1).toFixed(1)}" r="1" fill="#c9a84c" opacity="0.5"/>`;
+      }).join('')}
+      <!-- outer border detail -->
+      <ellipse rx="${mRx+3}" ry="${mRy+3}" fill="none" stroke="#c9a84c" stroke-width="0.5" opacity="0.3" stroke-dasharray="2,2"/>
+    </g>`;
+
+  // ── Draw oval beads ───────────────────────────────────────────────────────
+  // pulse under current bead (prepend)
+  const curOval = ovalBeads.find(b => b.isCurrent);
+  if (curOval) {
+    beadsOut += `<circle cx="${curOval.x.toFixed(1)}" cy="${curOval.y.toFixed(1)}" r="${curOval.r + 5}" fill="rgba(201,168,76,0.12)" stroke="none">
+      <animate attributeName="r" values="${curOval.r+3};${curOval.r+9};${curOval.r+3}" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite"/>
+    </circle>`;
+  }
+
+  ovalBeads.forEach(b => {
+    const gf = b.isCurrent ? `filter="url(#glow)"` : '';
+    beadsOut += `<circle cx="${b.x.toFixed(1)}" cy="${b.y.toFixed(1)}" r="${b.r}"
+      fill="${beadFill(b.isCurrent,b.isPrayed,b.large)}"
+      stroke="${beadStroke(b.isCurrent,b.isPrayed)}"
+      stroke-width="${beadSW(b.isCurrent)}"
+      data-step="${b.stepIdx}" ${gf} style="cursor:pointer"/>`;
+  });
+
+  // ── Tail beads ────────────────────────────────────────────────────────────
+  function tailBead(x, y, r, stepIdx, large) {
+    const isCur = cur === stepIdx;
+    const isPr  = cur > stepIdx;
+    const gf    = isCur ? `filter="url(#glow)"` : '';
+    let out = '';
+    if (isCur) {
+      out += `<circle cx="${x}" cy="${y}" r="${r+5}" fill="rgba(201,168,76,0.12)" stroke="none">
+        <animate attributeName="r" values="${r+3};${r+9};${r+3}" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite"/>
+      </circle>`;
+    }
+    out += `<circle cx="${x}" cy="${y}" r="${r}"
+      fill="${beadFill(isCur,isPr,large)}"
+      stroke="${beadStroke(isCur,isPr)}"
+      stroke-width="${beadSW(isCur)}"
+      data-step="${stepIdx}" ${gf} style="cursor:pointer"/>`;
+    return out;
+  }
+
+  // Notre Père (large bead)
+  beadsOut += tailBead(cx, np0Y, 11, np0Step, true);
+  // 3 Ave Maria
+  beadsOut += tailBead(cx, ave1Y, 7, ave1Step, false);
+  beadsOut += tailBead(cx, ave2Y, 7, ave2Step, false);
+  beadsOut += tailBead(cx, ave3Y, 7, ave3Step, false);
+
+  // ── Croix ────────────────────────────────────────────────────────────────
+  const crossIsCur = cur === credoStep;
+  const crossIsPr  = cur > credoStep;
+  const crossCol   = crossIsCur ? '#e8c96a' : crossIsPr ? '#c9a84c' : '#5a3e20';
+  const cw = 3;
+  beadsOut += `
+    <g data-step="0" style="cursor:pointer" transform="translate(${cx},${crossY})">
+      ${crossIsCur ? `<circle r="24" fill="rgba(201,168,76,0.08)" stroke="rgba(201,168,76,0.25)" stroke-width="1"><animate attributeName="r" values="22;28;22" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite"/></circle>` : ''}
+      <!-- corpus outline -->
+      <line x1="0" y1="-20" x2="0" y2="20" stroke="${crossCol}" stroke-width="${cw}" stroke-linecap="round"/>
+      <line x1="-13" y1="-6" x2="13" y2="-6" stroke="${crossCol}" stroke-width="${cw}" stroke-linecap="round"/>
+      <!-- small INRI -->
+      <text x="0" y="-23" text-anchor="middle" font-size="4" fill="${crossCol}" opacity="0.7" font-family="serif">INRI</text>
+      <!-- corpus suggestion -->
+      <ellipse cx="0" cy="2" rx="3" ry="5" fill="none" stroke="${crossCol}" stroke-width="0.8" opacity="0.5"/>
+    </g>`;
+
+  return `<svg class="rosary-svg" viewBox="0 0 ${W} ${totalH}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+        <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    ${lines}
+    ${decorations}
+    ${beadsOut}
+  </svg>`;
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+
+function render() {
+  const app = document.getElementById('app');
+  const mystery = MYSTERIES[state.mysteryKey];
+  const progress = getProgress();
+  const decades = getDecadesInfo();
+
+  if (state.completed) {
+    app.innerHTML = `
+      <header>
+        <h1>Le Chapelet</h1>
+      </header>
+      <div class="completed">
+        <div class="cross">✝</div>
+        <h2>Chapelet accompli</h2>
+        <p>« Béni soit ton saint et immaculé Enfantement. »</p>
+        <div class="btn-row">
+          <button class="btn-main btn-next" onclick="reset()">Recommencer</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const step = state.sequence[state.currentStep];
+  const totalSteps = state.sequence.length;
+
+  // Count aves completed in current decade
+  let currentDecadeAves = 0;
+  let currentDecadeIdx = -1;
+  if (step.decadeIdx !== undefined && step.decadeIdx >= 0) {
+    currentDecadeIdx = step.decadeIdx;
+    currentDecadeAves = step.beadInDecade + 1;
+  } else if (step.decade !== undefined) {
+    currentDecadeIdx = step.decade;
+  }
+
+  const prayer = PRAYERS[step.type] || PRAYERS['notre-pere'];
+  const typeLabels = {
+    'notre-pere': '✦ Notre Père',
+    'ave': '✦ Ave Maria',
+    'gloire': '✦ Doxologie',
+    'credo': '✦ Credo des Apôtres',
+    'fatima': '✦ Prière de Fatima',
+    'salve': '✦ Salve Regina'
+  };
+
+  app.innerHTML = `
+    <header>
+      <h1>Le Chapelet</h1>
+      <p>${mystery.name}</p>
+    </header>
+
+    <div class="mystery-selector">
+      ${Object.entries(MYSTERIES).map(([key, m]) =>
+        `<button class="mystery-btn ${key === state.mysteryKey ? 'active' : ''}" onclick="setMystery('${key}')">${m.name.replace('Mystères ', '')}</button>`
+      ).join('')}
+    </div>
+
+    <div class="progress-bar-outer">
+      <div class="progress-bar-inner" style="width:${progress}%"></div>
+    </div>
+
+    <div class="prayer-card">
+      <div class="step-label">${typeLabels[step.type] || '✦ Prière'}</div>
+      <div class="prayer-name">${step.label}</div>
+      <div class="prayer-desc">${prayer.intro}${step.introNote ? '<br><em style="opacity:0.7">' + step.introNote + '</em>' : ''}</div>
+    </div>
+
+    <div class="prayer-text-section">
+      <button class="prayer-toggle" id="prayerToggle" onclick="togglePrayer()">
+        <span>Lire la prière en entier</span>
+        <span class="chevron">▼</span>
+      </button>
+      <div class="prayer-full" id="prayerFull">
+        <div class="prayer-intro-text">${prayer.title}</div>
+        <pre>${prayer.text}</pre>
+      </div>
+    </div>
+
+    ${currentDecadeIdx >= 0 ? `
+    <div class="mystery-display">Dizaine ${currentDecadeIdx + 1} sur 5</div>
+    <div class="mystery-name">« ${mystery.decades[currentDecadeIdx]} »</div>
+    <div class="mystery-verse">
+      <span class="verse-ref">${mystery.verses[currentDecadeIdx].ref}</span>
+      <span class="verse-text">${mystery.verses[currentDecadeIdx].text}</span>
+    </div>
+    ` : ''}
+
+    <div class="decade-dots">
+      ${decades.map((d, i) => `<div class="decade-dot ${d}" title="Dizaine ${i+1}: ${mystery.decades[i]}"></div>`).join('')}
+    </div>
+
+    <div class="rosary-container">
+      ${buildRosarySVG()}
+    </div>
+
+    <div class="counter-row">
+      <div class="counter-box">
+        <div class="num">${state.currentStep + 1} <span style="font-size:1rem;opacity:0.4">/ ${totalSteps}</span></div>
+        <div class="lbl">étape</div>
+      </div>
+      <div class="counter-box">
+        <div class="num">${progress}%</div>
+        <div class="lbl">accompli</div>
+      </div>
+      <div class="counter-box dizaine-counter">
+        <div class="num">${decades.filter(d => d === 'done').length} <span style="font-size:1rem;opacity:0.4">/ 5</span></div>
+        <div class="lbl">dizaines</div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-main btn-next" onclick="advanceStep()">
+        ${state.currentStep < totalSteps - 1 ? 'Prière suivante' : 'Terminer'}
+      </button>
+      <button class="btn-main btn-reset" onclick="if(confirm('Recommencer le chapelet ?')) reset()">
+        Recommencer
+      </button>
+    </div>
+  `;
+
+  // Attach click events to SVG beads
+  document.querySelectorAll('[data-step]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const stepIdx = parseInt(el.getAttribute('data-step'));
+      if (!isNaN(stepIdx) && stepIdx <= state.currentStep + 1) {
+        state.currentStep = stepIdx;
+        render();
+      }
+    });
+  });
+}
+
+function togglePrayer() {
+  const toggle = document.getElementById('prayerToggle');
+  const full = document.getElementById('prayerFull');
+  if (!toggle || !full) return;
+  toggle.classList.toggle('open');
+  full.classList.toggle('visible');
+  const span = toggle.querySelector('span:first-child');
+  span.textContent = full.classList.contains('visible') ? 'Masquer la prière' : 'Lire la prière en entier';
+}
+
+render();
+
+// ─── SERVICE WORKER ──────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
